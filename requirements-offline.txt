@@ -1,0 +1,8 @@
+# Dependencies for the offline IndicTrans2 + ctranslate2 pipeline (app_offline.py).
+# Use this in addition to (or instead of) requirements.txt.
+
+SpeechRecognition>=3.10.0
+PyAudio>=0.2.13
+ctranslate2>=4.0.0
+sentencepiece>=0.1.99
+indic-nlp-library>=0.92

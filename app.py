@@ -1,81 +1,31 @@
 """
 Eloquent Speaker - Malayalam Speech to English Translation
-A Tkinter GUI application that captures spoken Malayalam, transcribes it,
-and translates the text to English using IndicTrans (ctranslate2).
+
+A Tkinter GUI application that captures spoken Malayalam, transcribes it
+using Google Speech Recognition, and translates the text to English using
+the free Google Translate web endpoint (via deep-translator).
+
+Requires an active internet connection.
 """
 
-import argparse
-import os
 import threading
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 
 import speech_recognition as sr
-import ctranslate2
-import sentencepiece as spm
-from indicnlp.tokenize import indic_tokenize
-from indicnlp.normalize.indic_normalize import IndicNormalizerFactory
-from indicnlp.transliterate import unicode_transliterate
-
-MAX_SEQ_LEN = 256
+from deep_translator import GoogleTranslator
 
 
-def add_token(sent: str) -> str:
-    """Prefix the sentence with source/target language tags."""
-    return "mal_Mlym" + " " + "eng_Latn" + " " + sent
-
-
-def preprocess_sentence(sentence: str, sp_src, model_dir: str) -> str:
-    """Normalize, transliterate, tokenize and translate a Malayalam sentence."""
-    normfactory = IndicNormalizerFactory()
-    normalizer = normfactory.get_normalizer("ml")
-    xliterator = unicode_transliterate.UnicodeIndicTransliterator()
-
-    processed_sent = xliterator.transliterate(
-        " ".join(indic_tokenize.trivial_tokenize(normalizer.normalize(sentence.strip()), "ml")),
-        "ml",
-        "hi",
-    ).replace(" ् ", "्")
-
-    sents = [" ".join(sp_src.encode(sent, out_type=str)) for sent in [processed_sent]]
-    tagged_sents = [add_token(s.strip()) for s in sents]
-
-    new_sents = []
-    for sent in tagged_sents:
-        words = sent.split()
-        if len(words) > MAX_SEQ_LEN:
-            preview = " ".join(words[:5]) + " .... " + " ".join(words[-5:])
-            print(f"WARNING: Sentence '{preview}' truncated to {MAX_SEQ_LEN} tokens")
-            sent = " ".join(words[:MAX_SEQ_LEN])
-        new_sents.append(sent)
-
-    translator = ctranslate2.Translator(model_dir, device="cpu")
-    tokenized_sents = [x.strip().split(" ") for x in new_sents]
-    translations = translator.translate_batch(
-        tokenized_sents,
-        max_batch_size=9216,
-        batch_type="tokens",
-        max_input_length=160,
-        max_decoding_length=256,
-        beam_size=5,
-    )
-    translations = [" ".join(x.hypotheses[0]) for x in translations]
-    translations = [t.replace(" ", "").replace("▁", " ").strip() for t in translations]
-    return translations[0]
-
-
-def translate_sentence(sentence: str, model_dir: str) -> str:
-    """Load the SentencePiece model and translate a single sentence."""
-    sp_src = spm.SentencePieceProcessor(
-        model_file=os.path.join(model_dir, "vocab", "model.SRC")
-    )
-    return preprocess_sentence(sentence, sp_src, model_dir)
+def translate_ml_to_en(text: str) -> str:
+    """Translate a Malayalam string to English."""
+    if not text or not text.strip():
+        return ""
+    return GoogleTranslator(source="ml", target="en").translate(text)
 
 
 class EloquentSpeakerApp:
-    def __init__(self, root: tk.Tk, model_dir: str):
+    def __init__(self, root: tk.Tk):
         self.root = root
-        self.model_dir = model_dir
         self.recognizer = sr.Recognizer()
         try:
             self.microphone = sr.Microphone()
@@ -108,26 +58,55 @@ class EloquentSpeakerApp:
             foreground="white",
         ).pack(pady=10)
 
-        self.start_button = ttk.Button(
-            self.root, text="Start Recording", command=self.start_recording, width=20
-        )
-        self.start_button.pack(pady=10)
+        button_frame = tk.Frame(self.root, bg="#1E2630")
+        button_frame.pack(pady=10)
 
+        self.start_button = ttk.Button(
+            button_frame, text="Start Recording", command=self.start_recording, width=20
+        )
+        self.start_button.grid(row=0, column=0, padx=5)
+
+        self.clear_button = ttk.Button(
+            button_frame, text="Clear", command=self.clear_text, width=20
+        )
+        self.clear_button.grid(row=0, column=1, padx=5)
+
+        ttk.Label(
+            self.root,
+            text="Original Malayalam:",
+            font=("Arial", 12, "bold"),
+            background="#1E2630",
+            foreground="white",
+        ).pack(anchor="w", padx=50)
         self.transcription_box = scrolledtext.ScrolledText(
             self.root, wrap=tk.WORD, width=80, height=8, font=("Arial", 14), bg="white"
         )
-        self.transcription_box.pack(pady=10)
-        self.transcription_box.insert(tk.END, "Original Malayalam Text:\n")
-        self.transcription_box.config(state=tk.DISABLED)
+        self.transcription_box.pack(pady=5)
 
+        ttk.Label(
+            self.root,
+            text="Translated English:",
+            font=("Arial", 12, "bold"),
+            background="#1E2630",
+            foreground="white",
+        ).pack(anchor="w", padx=50)
         self.translation_box = scrolledtext.ScrolledText(
             self.root, wrap=tk.WORD, width=80, height=8, font=("Arial", 14), bg="white"
         )
-        self.translation_box.pack(pady=10)
-        self.translation_box.insert(tk.END, "Translated English Text:\n")
-        self.translation_box.config(state=tk.DISABLED)
+        self.translation_box.pack(pady=5)
 
-        ttk.Button(self.root, text="Exit", command=self.exit_application, width=20).pack(pady=20)
+        self.status_label = ttk.Label(
+            self.root,
+            text="Ready.",
+            font=("Arial", 11, "italic"),
+            background="#1E2630",
+            foreground="#A0E0A0",
+        )
+        self.status_label.pack(pady=5)
+
+        ttk.Button(self.root, text="Exit", command=self.exit_application, width=20).pack(pady=15)
+
+    # ---------- helpers ----------
 
     def _set_box(self, box: scrolledtext.ScrolledText, text: str) -> None:
         box.config(state=tk.NORMAL)
@@ -135,60 +114,75 @@ class EloquentSpeakerApp:
         box.insert(tk.END, text)
         box.config(state=tk.DISABLED)
 
+    def _set_status(self, text: str, color: str = "#A0E0A0") -> None:
+        self.status_label.config(text=text, foreground=color)
+
+    # ---------- actions ----------
+
+    def clear_text(self) -> None:
+        self._set_box(self.transcription_box, "")
+        self._set_box(self.translation_box, "")
+        self._set_status("Ready.")
+
     def start_recording(self) -> None:
         self.start_button["state"] = "disabled"
-        self._set_box(self.transcription_box, "Please wait...\n")
+        self.clear_button["state"] = "disabled"
+        self._set_box(self.transcription_box, "")
+        self._set_box(self.translation_box, "")
+        self._set_status("Calibrating microphone...", "#FFD700")
         threading.Thread(target=self.recognize_speech, daemon=True).start()
 
-    def update_transcription(self, text: str) -> None:
-        self._set_box(self.transcription_box, f"Transcribed Text:\n{text}")
-        try:
-            translated_text = translate_sentence(text, self.model_dir)
-            self._set_box(self.translation_box, f"Translated Text:\n{translated_text}")
-        except Exception as exc:
-            self._set_box(self.translation_box, f"Translation error: {exc}")
-        self.start_button["state"] = "normal"
-
     def recognize_speech(self) -> None:
-        with self.microphone as source:
-            self.recognizer.adjust_for_ambient_noise(source, duration=5)
-            self._set_box(self.transcription_box, "Listening...\n")
-            audio = self.recognizer.listen(source)
+        try:
+            with self.microphone as source:
+                self.recognizer.adjust_for_ambient_noise(source, duration=1)
+                self.root.after(0, self._set_status, "Listening... speak now", "#FFD700")
+                audio = self.recognizer.listen(source, timeout=10, phrase_time_limit=15)
+        except sr.WaitTimeoutError:
+            self.root.after(0, self._on_error, "No speech detected (timed out).")
+            return
+        except Exception as exc:
+            self.root.after(0, self._on_error, f"Microphone error: {exc}")
+            return
+
+        self.root.after(0, self._set_status, "Transcribing...", "#FFD700")
         try:
             transcription = self.recognizer.recognize_google(audio, language="ml-IN")
-            self.update_transcription(transcription)
         except sr.UnknownValueError:
-            self._set_box(self.transcription_box, "Could not understand audio.")
-            self.start_button["state"] = "normal"
+            self.root.after(0, self._on_error, "Could not understand audio.")
+            return
         except sr.RequestError as exc:
-            self._set_box(self.transcription_box, f"Speech API error: {exc}")
-            self.start_button["state"] = "normal"
+            self.root.after(0, self._on_error, f"Speech API error: {exc}")
+            return
+
+        self.root.after(0, self._set_box, self.transcription_box, transcription)
+        self.root.after(0, self._set_status, "Translating...", "#FFD700")
+
+        try:
+            translated = translate_ml_to_en(transcription)
+        except Exception as exc:
+            self.root.after(0, self._on_error, f"Translation error: {exc}")
+            return
+
+        self.root.after(0, self._set_box, self.translation_box, translated)
+        self.root.after(0, self._set_status, "Done.", "#A0E0A0")
+        self.root.after(0, self._reenable_buttons)
+
+    def _on_error(self, message: str) -> None:
+        self._set_status(message, "#FF8080")
+        self._reenable_buttons()
+
+    def _reenable_buttons(self) -> None:
+        self.start_button["state"] = "normal"
+        self.clear_button["state"] = "normal"
 
     def exit_application(self) -> None:
         self.root.quit()
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Malayalam to English speech translator")
-    parser.add_argument(
-        "--model-dir",
-        default=os.environ.get("MALAYALAM_MODEL_DIR", "./final_model"),
-        help="Path to the IndicTrans ctranslate2 model directory "
-             "(or set MALAYALAM_MODEL_DIR env variable). Default: ./final_model",
-    )
-    return parser.parse_args()
-
-
 def main() -> None:
-    args = parse_args()
-    if not os.path.isdir(args.model_dir):
-        raise SystemExit(
-            f"Model directory not found: {args.model_dir}\n"
-            "Download IndicTrans2 ml->en ctranslate2 model and pass --model-dir "
-            "or set the MALAYALAM_MODEL_DIR environment variable. See README."
-        )
     root = tk.Tk()
-    EloquentSpeakerApp(root, model_dir=args.model_dir)
+    EloquentSpeakerApp(root)
     root.mainloop()
 
 
