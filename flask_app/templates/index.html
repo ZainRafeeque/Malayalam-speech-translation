@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eloquent Speaker - Malayalam to English</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Eloquent Speaker</h1>
+      <p class="tagline">Malayalam Speech-to-Text + English Translation</p>
+    </header>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="speak">🎤 Speak</button>
+      <button class="tab" data-tab="type">⌨️ Type</button>
+    </div>
+
+    <section id="tab-speak" class="tab-panel active">
+      <div class="recorder">
+        <button id="recordBtn" class="primary-btn">
+          <span class="icon">●</span>
+          <span class="label">Start Recording</span>
+        </button>
+        <div id="status" class="status">Ready.</div>
+      </div>
+    </section>
+
+    <section id="tab-type" class="tab-panel">
+      <textarea
+        id="typedInput"
+        placeholder="നമസ്കാരം, എന്റെ പേര് സൈൻ ആണ്"
+        rows="4"
+      ></textarea>
+      <button id="translateTypedBtn" class="primary-btn">Translate</button>
+    </section>
+
+    <div class="results">
+      <div class="result-box">
+        <label>Malayalam</label>
+        <div id="mlOutput" class="output-text"></div>
+      </div>
+      <div class="result-box">
+        <label>English</label>
+        <div id="enOutput" class="output-text"></div>
+      </div>
+    </div>
+
+    <footer>
+      <p>
+        Built with Flask + Web Audio API. Source on
+        <a href="https://github.com/ZainRafeeque/Malayalam-speech-translation"
+           target="_blank" rel="noopener">GitHub</a>.
+      </p>
+    </footer>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

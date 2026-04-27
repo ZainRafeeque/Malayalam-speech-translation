@@ -2,36 +2,32 @@
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
-![Libraries](https://img.shields.io/badge/Libraries-Tkinter%20%7C%20SpeechRecognition%20%7C%20ctranslate2-green)
+![Frontends](https://img.shields.io/badge/Frontends-5-brightgreen)
 
-An end-to-end desktop application that captures spoken **Malayalam**, transcribes it to text, and translates it to **English**.
+An end-to-end project that captures spoken **Malayalam**, transcribes it to text, and translates it to **English** — shipped with **5 different frontends** and **2 translation backends**.
 
 > Published research project — see `Project_report.pdf` and `e- Certificate_of_publication.png` for the accompanying publication.
 
 ---
 
-## Two Versions
+## What's inside
 
-This repository ships **two interchangeable apps**:
+### 🎨 Five Frontends
 
-| Script | Translation backend | Internet | Setup effort |
+| Frontend | File / Folder | Type | Best for |
 |---|---|---|---|
-| `app.py` | Google Translate (via `deep-translator`) | Required | One pip install — works instantly |
-| `app_offline.py` | IndicTrans2 + ctranslate2 (offline NMT) | Speech-to-text only | Requires downloading a translation model |
+| **Tkinter (cloud)** | `app.py` | Desktop GUI | Quick local use |
+| **Tkinter (offline)** | `app_offline.py` | Desktop GUI | Fully offline NMT (requires model) |
+| **Gradio** | `app_gradio.py` | Web UI | HuggingFace Spaces deploy |
+| **Streamlit** | `app_streamlit.py` | Web UI | Streamlit Cloud deploy |
+| **Flask + HTML/CSS/JS** | `flask_app/` | Custom web app | Full control, deploy anywhere |
 
-Both share the same Tkinter GUI, threaded mic capture, and Google Speech Recognition for the speech-to-text step.
+### 🧠 Two Translation Backends
 
----
-
-## Features
-
-- **Real-time Speech Recognition** — Captures and transcribes Malayalam speech via Google Speech API.
-- **Two translation backends** — Pick the cloud (`app.py`) or offline NMT (`app_offline.py`) version.
-- **User-Friendly GUI** — Clean Tkinter interface with separate transcription and translation panes, status indicator, and a Clear button.
-- **Threaded I/O** — Recording and translation run on a background thread so the UI never freezes.
-- **Robust Error Handling** — Friendly messages for mic issues, network failures, and unrecognized speech.
-- **Dialect Adaptation** (offline) — Indic NLP normalization + Devanagari transliteration before NMT.
-- **Long Sentence Handling** (offline) — Auto-truncates at 256 tokens.
+| Backend | Used by | Internet | Setup |
+|---|---|---|---|
+| Google Translate (`deep-translator`) | All web versions + `app.py` | Required | Just pip install |
+| IndicTrans2 + ctranslate2 (offline NMT) | `app_offline.py` + original notebook | No | Download model (~800 MB+) |
 
 ---
 
@@ -39,12 +35,21 @@ Both share the same Tkinter GUI, threaded mic capture, and Google Speech Recogni
 
 ```
 Malayalam-speech-translation/
-├── app.py                          # Cloud version (Google Translate)
-├── app_offline.py                  # Offline version (IndicTrans2 + ctranslate2)
+├── app.py                          # Tkinter desktop (cloud / Google Translate)
+├── app_offline.py                  # Tkinter desktop (offline IndicTrans2)
+├── app_gradio.py                   # Gradio web UI
+├── app_streamlit.py                # Streamlit web UI
+├── flask_app/
+│   ├── app.py                      # Flask backend
+│   ├── templates/index.html        # Custom HTML
+│   └── static/
+│       ├── style.css               # Custom CSS
+│       └── app.js                  # Browser MediaRecorder + fetch
 ├── project_code_cmpltd.ipynb       # Original research notebook
-├── requirements.txt                # Deps for app.py
-├── requirements-offline.txt        # Deps for app_offline.py
-├── Project_report.pdf              # Published research report
+├── requirements.txt                # Tkinter cloud version deps
+├── requirements-offline.txt        # Offline NMT deps
+├── requirements-web.txt            # Web frontends (Gradio + Streamlit + Flask)
+├── Project_report.pdf
 ├── e- Certificate_of_publication.png
 ├── README.md
 ├── LICENSE
@@ -53,7 +58,7 @@ Malayalam-speech-translation/
 
 ---
 
-## Quick Start (Cloud version)
+## Quick Start
 
 ```bash
 git clone https://github.com/ZainRafeeque/Malayalam-speech-translation.git
@@ -64,34 +69,94 @@ python -m venv venv
 venv\Scripts\activate
 # Linux / macOS
 source venv/bin/activate
+```
 
+Then install whichever frontend stack you want and run it:
+
+### 1. Tkinter desktop (default)
+
+```bash
 pip install -r requirements.txt
 python app.py
 ```
 
-> **Windows users:** If `PyAudio` fails to install, try a prebuilt wheel:
-> `pip install pipwin && pipwin install pyaudio`
->
-> **Linux users:** Install PortAudio first:
-> `sudo apt-get install portaudio19-dev python3-pyaudio`
+> **Windows:** `pip install pipwin && pipwin install pyaudio` if PyAudio fails.
+> **Linux:** `sudo apt-get install portaudio19-dev python3-pyaudio` first.
 
-### How to use
+### 2. Gradio web UI
 
-1. Click **"Start Recording"**.
-2. Speak in Malayalam after the *"Listening... speak now"* status appears.
-3. The transcribed Malayalam text appears in the **upper** text box.
-4. The English translation appears in the **lower** text box.
-5. Click **"Clear"** to reset, or **"Exit"** to close.
+```bash
+pip install -r requirements-web.txt
+python app_gradio.py
+# Opens http://127.0.0.1:7860
+```
 
-> An active **internet connection** is required for both the speech recognition and translation services in this version.
+### 3. Streamlit web UI
+
+```bash
+pip install -r requirements-web.txt
+streamlit run app_streamlit.py
+# Opens http://localhost:8501
+```
+
+### 4. Flask + custom HTML/CSS/JS
+
+```bash
+pip install -r requirements-web.txt
+# ffmpeg required for browser audio conversion (https://ffmpeg.org/download.html)
+python flask_app/app.py
+# Opens http://127.0.0.1:5000
+```
+
+### 5. Offline IndicTrans2 (Tkinter)
+
+```bash
+pip install -r requirements-offline.txt
+# Download an IndicTrans2 ml->en ctranslate2 model into ./final_model/
+python app_offline.py
+```
+
+See the [Offline version](#offline-version-indictrans2--ctranslate2) section below.
+
+---
+
+## How to use any frontend
+
+1. Click **Start Recording** (or upload an audio file in Streamlit / type in any version).
+2. Speak in Malayalam (clear voice, quiet room).
+3. The Malayalam transcription appears.
+4. The English translation appears below it.
+
+> An active **internet connection** is required for both speech recognition (Google Speech API) and translation in all cloud versions.
+
+---
+
+## Deploy
+
+### Gradio → HuggingFace Spaces (free)
+
+1. Create a new Gradio Space at https://huggingface.co/new-space
+2. Upload `app_gradio.py` (rename to `app.py` in the Space)
+3. Upload `requirements-web.txt` (rename to `requirements.txt`)
+4. Done — your Space gets a public URL
+
+### Streamlit → Streamlit Community Cloud (free)
+
+1. Push this repo to GitHub
+2. Sign in at https://share.streamlit.io
+3. Pick this repo, point to `app_streamlit.py`
+4. Set requirements file to `requirements-web.txt`
+
+### Flask → Render / Railway / Fly.io
+
+1. Use a `gunicorn` start command: `gunicorn -w 2 -b 0.0.0.0:$PORT flask_app.app:app`
+2. Add ffmpeg to the build (most platforms have it as a buildpack/preinstalled)
 
 ---
 
 ## Offline Version (IndicTrans2 + ctranslate2)
 
-The offline version is the original research-stage prototype. It runs neural machine translation **fully on your machine** (no translation API call), but you must supply the model files yourself.
-
-### 1. Install offline dependencies
+### 1. Install offline deps
 
 ```bash
 pip install -r requirements-offline.txt
@@ -99,66 +164,58 @@ pip install -r requirements-offline.txt
 
 ### 2. Obtain an IndicTrans2 ml→en model in ctranslate2 format
 
-You need a folder containing the following files:
+You need a folder with:
 
 ```
 final_model/
 ├── config.json
 ├── model.bin
 └── vocab/
-    ├── model.SRC      # SentencePiece source model
-    └── model.TGT      # SentencePiece target model
+    ├── model.SRC
+    └── model.TGT
 ```
 
-Common ways to obtain it:
+Convert from the official model:
 
-- **Convert from the official IndicTrans2 model** (recommended for best quality):
-  - HF model: https://huggingface.co/ai4bharat/indictrans2-indic-en-1B
-                or distilled: https://huggingface.co/ai4bharat/indictrans2-indic-en-dist-200M
-  - Conversion tool: `ct2-transformers-converter` (from the `ctranslate2` package)
-  - See: https://opennmt.net/CTranslate2/guides/transformers.html
-- **Use a community pre-converted ctranslate2 model** if one is available.
+- HF: https://huggingface.co/ai4bharat/indictrans2-indic-en-1B
+- or distilled: https://huggingface.co/ai4bharat/indictrans2-indic-en-dist-200M
+- Tool: `ct2-transformers-converter` (from the `ctranslate2` package)
+- Guide: https://opennmt.net/CTranslate2/guides/transformers.html
 
 ### 3. Run
 
 ```bash
-# Default model path: ./final_model
-python app_offline.py
-
-# Or pass a custom path
-python app_offline.py --model-dir "/path/to/final_model"
-
-# Or use an environment variable
-export MALAYALAM_MODEL_DIR="/path/to/final_model"     # Linux / macOS
-$env:MALAYALAM_MODEL_DIR="C:\path\to\final_model"     # PowerShell
-set MALAYALAM_MODEL_DIR=C:\path\to\final_model        # cmd
-python app_offline.py
+python app_offline.py                                # default ./final_model
+python app_offline.py --model-dir /path/to/model    # custom path
+# Or set MALAYALAM_MODEL_DIR environment variable
 ```
-
-The first translation triggers a one-time model load (a few seconds on CPU); subsequent translations are fast.
 
 ---
 
 ## Tech Stack
 
-| Component | `app.py` | `app_offline.py` |
-|---|---|---|
-| GUI | Tkinter | Tkinter |
-| Speech recognition | SpeechRecognition + Google Speech API | SpeechRecognition + Google Speech API |
-| Audio capture | PyAudio | PyAudio |
-| Text normalization | — | indic-nlp-library |
-| Tokenization | — | SentencePiece |
-| Translation | deep-translator (Google Translate) | ctranslate2 (IndicTrans2 model) |
+| Concern | Library |
+|---|---|
+| Desktop GUI | Tkinter |
+| Web UI options | Gradio · Streamlit · Flask + vanilla JS |
+| Speech recognition | SpeechRecognition + Google Speech API |
+| Audio capture (desktop) | PyAudio |
+| Audio capture (web) | Browser MediaRecorder API / Streamlit `st.audio_input` / Gradio `gr.Audio` |
+| Audio format conversion (Flask) | pydub + ffmpeg |
+| Cloud translation | deep-translator (Google Translate) |
+| Offline translation | ctranslate2 (IndicTrans2 model) |
+| Offline preprocessing | indic-nlp-library, SentencePiece |
 
 ---
 
 ## Roadmap
 
-- [ ] Offline ASR option (Vosk / Whisper) for end-to-end offline pipeline
-- [ ] Stop-recording button / hotkey
-- [ ] Language selector (translate to languages other than English)
-- [ ] Audio file upload (translate pre-recorded files)
+- [ ] Offline ASR option (Whisper / Vosk) for end-to-end offline pipeline
+- [ ] Stop-recording hotkey
+- [ ] Multi-target language selector
+- [ ] Audio file upload in Tkinter version
 - [ ] Save transcription/translation history to file
+- [ ] Docker image bundling all 5 frontends
 
 ---
 

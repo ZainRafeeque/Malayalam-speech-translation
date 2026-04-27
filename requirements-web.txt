@@ -1,0 +1,14 @@
+# Dependencies for the web frontends (Gradio / Streamlit / Flask).
+# These do NOT need PyAudio — audio is captured in the browser.
+
+SpeechRecognition>=3.10.0
+deep-translator>=1.11.4
+
+# Pick the framework you want to run; install all if you want to try every UI.
+gradio>=4.0.0
+streamlit>=1.30.0
+Flask>=3.0.0
+
+# For Flask version: convert browser webm/ogg audio to WAV.
+# Requires ffmpeg installed on the system (https://ffmpeg.org/download.html).
+pydub>=0.25.1
